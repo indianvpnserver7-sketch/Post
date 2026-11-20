@@ -1,4 +1,3 @@
-import hmac
 import json
 import os
 import re
@@ -8,7 +7,6 @@ from flask import Flask, jsonify, redirect, request, Response
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("API_KEY", "")
 DATA_FILE = os.environ.get("DATA_FILE", "links.json")
 MAX_LINKS = int(os.environ.get("MAX_LINKS", "500"))
 URL_RE = re.compile(r"^https://[a-zA-Z0-9.-]+(?::\d+)?(?:/[^\s]*)?$")
@@ -35,10 +33,6 @@ def _save_links(links):
 
 def _now_iso():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _safe_equal(a, b):
-    return hmac.compare_digest(str(a or ""), str(b or ""))
 
 
 INDEX_HTML = r"""<!doctype html>
@@ -81,7 +75,6 @@ INDEX_HTML = r"""<!doctype html>
     button { font-family: inherit; cursor: pointer; }
     a { color: var(--accent); text-decoration: none; }
 
-    /* Background layers (PixelArt style) */
     .grid-bg {
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image:
@@ -109,7 +102,6 @@ INDEX_HTML = r"""<!doctype html>
     @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5vw,4vw) scale(1.12); } }
     @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-5vw,-3vw) scale(1.1); } }
 
-    /* Shell */
     .shell {
       position: relative; z-index: 2;
       max-width: 780px;
@@ -117,7 +109,6 @@ INDEX_HTML = r"""<!doctype html>
       padding: 36px 18px 80px;
     }
 
-    /* Hero */
     .hero { text-align: center; margin-bottom: 26px; }
     .hero-logo {
       font-family: 'Playfair Display', Georgia, serif;
@@ -154,7 +145,6 @@ INDEX_HTML = r"""<!doctype html>
     }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    /* Active / Latest Link Hero Card */
     .latest-card {
       position: relative; overflow: hidden;
       border-radius: 20px;
@@ -228,7 +218,6 @@ INDEX_HTML = r"""<!doctype html>
     }
     .btn-ghost:hover { border-color: var(--accent); background: rgba(0,0,0,0.42); }
 
-    /* Search + toolbar */
     .toolbar {
       display: flex; align-items: center; gap: 10px;
       margin-bottom: 12px;
@@ -286,7 +275,6 @@ INDEX_HTML = r"""<!doctype html>
       padding: 0 4px; margin-bottom: 18px;
     }
 
-    /* Per-Day History Sections */
     .day-section {
       margin-bottom: 22px;
       animation: cardIn 0.3s ease backwards;
@@ -475,14 +463,6 @@ INDEX_HTML = r"""<!doctype html>
       if (isNaN(d)) return iso || "";
       return d.toLocaleString(undefined, {
         month: "short", day: "numeric", year: "numeric",
-        hour: "numeric", minute: "2-digit", second: "2-digit"
-      });
-    }
-
-    function fmtTimeOnly(iso) {
-      const d = new Date(iso);
-      if (isNaN(d)) return "";
-      return d.toLocaleTimeString(undefined, {
         hour: "numeric", minute: "2-digit", second: "2-digit"
       });
     }
@@ -726,10 +706,6 @@ def api_url():
         }), 200, {"Cache-Control": "no-store"}
 
     data = request.get_json(silent=True) or {}
-    key = request.headers.get("x-api-key") or data.get("key") or ""
-    if not API_KEY or not _safe_equal(key, API_KEY):
-        return jsonify({"error": "Unauthorized"}), 401
-
     raw_url = (data.get("url") or "").strip()
     if not URL_RE.match(raw_url):
         return jsonify({"error": "Invalid url"}), 400
